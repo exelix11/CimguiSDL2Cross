@@ -1,0 +1,59 @@
+name: Mac os build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      shell: bash
+      env:
+        GITHUB_OS: ${{ matrix.os }}
+      run: |
+        brew install luajit
+        wget https://github.com/libsdl-org/SDL/releases/download/release-2.28.0/SDL2-2.28.0.dmg
+        sudo hdiutil attach SDL2-2.28.0.dmg
+
+    - name: Download Submodules
+      run: |
+        git submodule update --init --recursive --depth=1
+
+    - name: Generate Bindings
+      working-directory: cimgui
+      shell: bash
+      run: |
+        cd ./generator
+        bash ./generator.sh
+
+    - name: CMake
+      run: |
+        export SDL2_DIR=/Volumes/SDL2/SDL2.framework/Resources/CMake/
+        cp CMakeLists.txt cimgui/
+        mkdir cmake-build
+        cd cmake-build
+        cmake ../cimgui/
+
+    - name: Build
+      working-directory: cmake-build
+      run: |
+        cmake --build . --config Release
+
+    - name: package
+      shell: bash
+      working-directory: cmake-build
+      run: |
+        mkdir drop
+        ls -la
+        cp cimgui.dylib drop/
+        cp /Volumes/SDL2/SDL2.framework/SDL2 drop/SDL2.dylib
+        mkdir drop/Resources/
+        cp /Volumes/SDL2/SDL2.framework/Resources/Info.plist drop/Resources/SDL2.dylib
+        
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: cmake-build/drop/
