@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
+set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+
 project(cimgui)
 
 set (CMAKE_CXX_STANDARD 11)
@@ -10,6 +12,10 @@ else()
 	set(TABLES_SOURCE "")
 endif()
 
+set(CMAKE_FIND_DEBUG_MODE 1)
+set(IMGUI_SOURCES_sdl)
+find_package(SDL2 CONFIG REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
 
 #general settings
 file(GLOB IMGUI_SOURCES
@@ -18,6 +24,8 @@ file(GLOB IMGUI_SOURCES
     imgui/imgui_draw.cpp
     imgui/imgui_demo.cpp
     imgui/imgui_widgets.cpp
+	imgui/backends/imgui_impl_sdl2.cpp
+	imgui/backends/imgui_impl_sdlrenderer2.cpp
 	${TABLES_SOURCE}
 )
 
@@ -50,7 +58,7 @@ endif (WIN32)
 target_include_directories(cimgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(cimgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 set_target_properties(cimgui PROPERTIES PREFIX "")
-target_link_libraries(cimgui ${IMGUI_LIBRARIES})
+target_link_libraries(cimgui ${IMGUI_LIBRARIES} $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main> $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>)
 
 #install
 install(TARGETS cimgui
