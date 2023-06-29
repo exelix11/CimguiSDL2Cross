@@ -31,7 +31,6 @@ jobs:
     - name: CMake
       run: |
         export SDL2_DIR=/Volumes/SDL2/SDL2.framework/Resources/CMake/
-        cp CMakeLists.txt cimgui/
         mkdir cmake-build
         cd cmake-build
         cmake ../cimgui/

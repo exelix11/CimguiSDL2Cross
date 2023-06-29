@@ -32,7 +32,6 @@ jobs:
 
     - name: CMake
       run: |
-        cp CMakeLists.txt cimgui/
         mkdir cmake-build
         cd cmake-build
         cmake ../cimgui/
