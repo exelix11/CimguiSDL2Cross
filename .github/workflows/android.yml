@@ -1,0 +1,52 @@
+name: Android build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    conatiner: 
+      image: cimg/android:2023.06.1-ndk
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      run: |
+        apt install libsdl2-dev luajit
+        wget https://github.com/bflattened/bflat/releases/download/v7.0.2/bflat-7.0.2-linux-glibc-x64.tar.gz
+        mkdir bflat
+        tar xf bflat-7.0.2-linux-glibc-x64.tar.gz -C bflat/
+
+    - name: Download Submodules
+      run: |
+        git submodule update --init --recursive --depth=1
+
+    - name: Generate Bindings
+      working-directory: cimgui
+      run: |
+        cd ./generator
+        bash ./generator.sh
+
+    - name: Initialize android project
+      run: |
+        export PATH=$PATH:$(pwd)/bflat/
+        cd example-android
+        chmod +x initialize.sh
+        ./initialize.sh
+        
+    - name: Build with gradle
+      working-directory: example-android/com.test
+      run: |
+        ./gradlew build
+
+    - name: package
+      shell: bash
+      run: |
+        mkdir drop
+        cp example-android\com.test\app\build\outputs\apk\debug\*.apk drop/
+        
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: apk
+        path: drop/
