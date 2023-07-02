@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    conatiner: 
+    container: 
       image: cimg/android:2023.06.1-ndk
     steps:
     - uses: actions/checkout@v1
