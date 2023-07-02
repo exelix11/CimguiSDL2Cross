@@ -13,7 +13,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt update
-        sudo apt install -y libsdl2-dev luajit
+        sudo apt install -y luajit
         wget https://github.com/bflattened/bflat/releases/download/v7.0.2/bflat-7.0.2-linux-glibc-x64.tar.gz
         mkdir bflat
         tar xf bflat-7.0.2-linux-glibc-x64.tar.gz -C bflat/
