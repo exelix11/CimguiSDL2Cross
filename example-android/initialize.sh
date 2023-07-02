@@ -12,9 +12,9 @@ ln -s $(pwd)/../example ./com.test/app/jni/
 echo Compile code library...
 RETURNTO=$(pwd)
 cd ./com.test/app/jni/example
-chmod +x build_aot_android.sh.sh
+chmod +x build_aot_android.sh
 # note that you need bflat in PATH for this
-./build_aot_android.sh.sh
+./build_aot_android.sh
 cd $RETURNTO
 
 # Fix gradlew permissions if needed
