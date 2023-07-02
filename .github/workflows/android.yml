@@ -44,7 +44,7 @@ jobs:
       shell: bash
       run: |
         mkdir drop
-        cp example-android\com.test\app\build\outputs\apk\debug\*.apk drop/
+        cp example-android/com.test/app/build/outputs/apk/debug/*.apk drop/
         
     - name: Upload
       uses: actions/upload-artifact@v3
