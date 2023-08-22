@@ -10,4 +10,4 @@ In practice this is just an example on how to configure everything, to use newer
 
 Once SDL sources are in place we use [bflat](https://github.com/bflattened/bflat) to make a shared library version of our example and copy it to the ndk-make folder. Once this is done you just need to run `./gradlew build` to get an APK
 
-Note that the gradle build does not recompile the C# library but just its 
+Note that the gradle build does not recompile the C# library but just the APK from the precompiled .so libs 
