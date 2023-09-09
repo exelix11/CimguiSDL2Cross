@@ -1,0 +1,45 @@
+name: Linux build
+# TODO: support arm64 builds
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      run: |
+        sudo apt install -y luajit libsdl2-dev 
+    - name: Download Submodules
+      run: |
+        git submodule update --init --recursive --depth=1
+    - name: Generate Bindings
+      working-directory: cimgui
+      run: |
+        cd ./generator
+        bash ./generator.sh
+
+    - name: CMake
+      run: |
+        mkdir cmake-build
+        cd cmake-build
+        cmake ../cimgui/
+
+    - name: Build
+      working-directory: cmake-build
+      run: |
+        cmake --build . --config Release
+
+    - name: package
+      working-directory: cmake-build
+      run: |
+        mkdir drop
+        cp cimgui.so drop/
+        
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: cmake-build/drop/
