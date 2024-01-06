@@ -308,6 +308,43 @@ static ImGuiKey ImGui_ImplSDL2_GamepadKeyToImGuiKey(SDL_GameControllerButton but
     return ImGuiKey_None;
 }
 
+//struct ImGui_ImplSDL2_AxisMap
+//{
+//    ImGuiKey Key;
+//    float  Value;
+//};
+//
+//static ImGui_ImplSDL2_AxisMap ImGui_ImplSDL2_GamepadAxisToImGuiKey(SDL_GameControllerAxis axis, Sint16 value)
+//{
+//    const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
+//
+//#define IM_SATURATE(V) (V < 0.0f ? 0.0f : V > 1.0f ? 1.0f : V)
+//#define MAP_ANALOG(KEY_NO, AXIS_NO, V0, V1) \
+//    if (axis == AXIS_NO) { \
+//        float vn = (float)(value - V0) / (float)(V1 - V0);\
+//        vn = IM_SATURATE(vn);\
+//        if (vn > 0.1f)\
+//            return { KEY_NO, vn };\
+//    }
+//
+//    {
+//        MAP_ANALOG(ImGuiKey_GamepadL2, SDL_CONTROLLER_AXIS_TRIGGERLEFT, 0.0f, 32767)
+//        MAP_ANALOG(ImGuiKey_GamepadR2, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 0.0f, 32767)
+//        MAP_ANALOG(ImGuiKey_GamepadRStickUp, SDL_CONTROLLER_AXIS_RIGHTY, -thumb_dead_zone, -32768)
+//        MAP_ANALOG(ImGuiKey_GamepadRStickDown, SDL_CONTROLLER_AXIS_RIGHTY, +thumb_dead_zone, +32767)
+//        MAP_ANALOG(ImGuiKey_GamepadLStickLeft, SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768)
+//        MAP_ANALOG(ImGuiKey_GamepadLStickRight, SDL_CONTROLLER_AXIS_LEFTX, +thumb_dead_zone, +32767)
+//        MAP_ANALOG(ImGuiKey_GamepadRStickLeft, SDL_CONTROLLER_AXIS_RIGHTX, -thumb_dead_zone, -32768)
+//        MAP_ANALOG(ImGuiKey_GamepadRStickRight, SDL_CONTROLLER_AXIS_RIGHTX, +thumb_dead_zone, +32767)
+//        MAP_ANALOG(ImGuiKey_GamepadLStickUp, SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32768)
+//        MAP_ANALOG(ImGuiKey_GamepadLStickDown, SDL_CONTROLLER_AXIS_LEFTY, +thumb_dead_zone, +32767)
+//    }
+//
+//    return { ImGuiKey_None , 0 };
+//#undef IM_SATURATE
+//#undef MAP_ANALOG
+//}
+
 static void ImGui_ImplSDL2_UpdateKeyModifiers(SDL_Keymod sdl_key_mods)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -433,6 +470,9 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         }
         case SDL_JOYDEVICEADDED:
         {
+            if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0)
+                return false;
+
             if (SDL_JoystickOpen(event->jdevice.which))
                 io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
 
@@ -440,6 +480,9 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         }
         case SDL_JOYDEVICEREMOVED:
         {
+            if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0)
+                return false;
+
             if (SDL_Joystick* joystick = SDL_JoystickFromInstanceID(event->jdevice.which))
                 SDL_JoystickClose(joystick);
 
@@ -451,14 +494,30 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         case SDL_JOYBUTTONDOWN:
         case SDL_JOYBUTTONUP:
         {
+            if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0)
+                return false;
+
             auto btn = ImGui_ImplSDL2_GamepadKeyToImGuiKey((SDL_GameControllerButton)event->jbutton.button);
-            printf("Button event: %d %d\n", event->jbutton.button, (event->type == SDL_JOYBUTTONDOWN));
             if (btn != ImGuiKey_None)
             {
                 io.AddKeyEvent(btn, (event->type == SDL_JOYBUTTONDOWN));
                 return true;
             }
         }
+        // TODO: Needs more testing, for now I don't need it.
+        //case SDL_JOYAXISMOTION:
+        //{
+        //    if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0)
+        //        return false;
+        //
+        //    auto map = ImGui_ImplSDL2_GamepadAxisToImGuiKey((SDL_GameControllerAxis)event->jaxis.axis, event->jaxis.value);
+        //    if (map.Key != ImGuiKey_None)
+        //    {
+        //        printf("analog event: %d %f\n", map.Key, map.Value);
+        //        io.AddKeyAnalogEvent(map.Key, true, map.Value);
+        //        return true;
+        //    }
+        //}
     }
     return false;
 }
@@ -488,11 +547,13 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, SDL_Renderer* renderer, void
     if (mouse_can_use_global_state)
         io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;  // We can create multi-viewports on the Platform side (optional)
 
-    auto joystick_count = SDL_NumJoysticks();
-    if (joystick_count > 0) {
-        io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-        for (int i = 0; i < joystick_count; i++)
-            SDL_JoystickOpen(i);
+    if (io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) {
+        auto joystick_count = SDL_NumJoysticks();
+        if (joystick_count > 0) {
+            io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+            for (int i = 0; i < joystick_count; i++)
+                SDL_JoystickOpen(i);
+        }
     }
 
     bd->Window = window;
@@ -712,37 +773,6 @@ static void ImGui_ImplSDL2_UpdateMouseCursor()
         }
         SDL_ShowCursor(SDL_TRUE);
     }
-}
-
-static void ImGui_ImplSDL2_UpdateGamepads()
-{
-    ImGuiIO& io = ImGui::GetIO();
-    if ((io.ConfigFlags & ImGuiConfigFlags_NavEnableGamepad) == 0) // FIXME: Technically feeding gamepad shouldn't depend on this now that they are regular inputs.
-        return;
-
-    // Get gamepad
-    io.BackendFlags &= ~ImGuiBackendFlags_HasGamepad;
-    SDL_GameController* game_controller = SDL_GameControllerOpen(0);
-    if (!game_controller)
-        return;
-    io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-
-    // Update gamepad inputs
-    #define IM_SATURATE(V)                      (V < 0.0f ? 0.0f : V > 1.0f ? 1.0f : V)
-    #define MAP_ANALOG(KEY_NO, AXIS_NO, V0, V1) { float vn = (float)(SDL_GameControllerGetAxis(game_controller, AXIS_NO) - V0) / (float)(V1 - V0); vn = IM_SATURATE(vn); io.AddKeyAnalogEvent(KEY_NO, vn > 0.1f, vn); }
-    const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
-    MAP_ANALOG(ImGuiKey_GamepadL2, SDL_CONTROLLER_AXIS_TRIGGERLEFT, 0.0f, 32767);
-    MAP_ANALOG(ImGuiKey_GamepadR2, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 0.0f, 32767);
-    MAP_ANALOG(ImGuiKey_GamepadLStickLeft,      SDL_CONTROLLER_AXIS_LEFTX,  -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiKey_GamepadLStickRight,     SDL_CONTROLLER_AXIS_LEFTX,  +thumb_dead_zone, +32767);
-    MAP_ANALOG(ImGuiKey_GamepadLStickUp,        SDL_CONTROLLER_AXIS_LEFTY,  -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiKey_GamepadLStickDown,      SDL_CONTROLLER_AXIS_LEFTY,  +thumb_dead_zone, +32767);
-    MAP_ANALOG(ImGuiKey_GamepadRStickLeft,      SDL_CONTROLLER_AXIS_RIGHTX, -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiKey_GamepadRStickRight,     SDL_CONTROLLER_AXIS_RIGHTX, +thumb_dead_zone, +32767);
-    MAP_ANALOG(ImGuiKey_GamepadRStickUp,        SDL_CONTROLLER_AXIS_RIGHTY, -thumb_dead_zone, -32768);
-    MAP_ANALOG(ImGuiKey_GamepadRStickDown,      SDL_CONTROLLER_AXIS_RIGHTY, +thumb_dead_zone, +32767);
-    #undef MAP_BUTTON
-    #undef MAP_ANALOG
 }
 
 // FIXME: Note that doesn't update with DPI/Scaling change only as SDL2 doesn't have an event for it (SDL3 has).
