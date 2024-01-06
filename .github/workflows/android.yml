@@ -22,6 +22,12 @@ jobs:
       run: |
         git submodule update --init --recursive --depth=1
 
+    - name: Apply patches
+      shell: bash
+      run: |
+        chmod +x apply_patches.sh
+        ./apply_patches.sh
+        
     - name: Generate Bindings
       working-directory: cimgui
       run: |

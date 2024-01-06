@@ -12,9 +12,17 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt install -y luajit libsdl2-dev 
+
     - name: Download Submodules
       run: |
         git submodule update --init --recursive --depth=1
+
+    - name: Apply patches
+      shell: bash
+      run: |
+        chmod +x apply_patches.sh
+        ./apply_patches.sh
+        
     - name: Generate Bindings
       working-directory: cimgui
       run: |
